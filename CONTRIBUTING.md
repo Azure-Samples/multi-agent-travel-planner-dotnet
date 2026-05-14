@@ -1,4 +1,4 @@
-# Contributing to [project-title]
+# Contributing to multi-agent-travel-planner-dotnet
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
 Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
@@ -49,12 +49,12 @@ chances of your issue being dealt with quickly:
 
 You can file new issues by providing the above information at the corresponding repository's issues link: 
 replace`[organization-name]` and `[repository-name]` in
-`https://github.com/[organization-name]/[repository-name]/issues/new` .
+`https://github.com/Azure-Samples/multi-agent-travel-planner-dotnet/issues/new` .
 
 ### <a name="submit-pr"></a> Submitting a Pull Request (PR)
 Before you submit your Pull Request (PR) consider the following guidelines:
 
-* Search the repository's [pull requests](https://github.com/[organization-name]/[repository-name]/pulls) for an open or closed PR
+* Search the repository's [pull requests](https://github.com/Azure-Samples/multi-agent-travel-planner-dotnet/pulls) for an open or closed PR
   that relates to your submission. You don't want to duplicate effort.
 
 * Make your changes in a new git fork:

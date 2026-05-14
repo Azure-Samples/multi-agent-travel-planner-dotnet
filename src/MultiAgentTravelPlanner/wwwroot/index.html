@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Multi-agent travel planner</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+  <style>
+    :root {
+      --bg-0: #0b1020;
+      --bg-1: #11172b;
+      --bg-2: #1a2240;
+      --border: #2a3454;
+      --text: #e6e8f2;
+      --muted: #8a93b5;
+      --accent: #6aa6ff;
+      --accent-2: #b388ff;
+      --user-bg: linear-gradient(135deg, #2563eb 0%, #6d28d9 100%);
+      --assistant-bg: #161c33;
+      --shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+      --radius: 14px;
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg-0: #f6f8fc;
+        --bg-1: #ffffff;
+        --bg-2: #eef2fa;
+        --border: #e2e8f0;
+        --text: #0f172a;
+        --muted: #5b6478;
+        --accent: #2563eb;
+        --accent-2: #7c3aed;
+        --assistant-bg: #ffffff;
+        --shadow: 0 6px 22px rgba(15, 23, 42, 0.08);
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1200px 600px at 80% -10%, rgba(124, 58, 237, 0.18), transparent 60%),
+        radial-gradient(1000px 500px at -10% 110%, rgba(37, 99, 235, 0.18), transparent 60%),
+        var(--bg-0);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    header {
+      padding: 22px 28px 18px;
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(10px);
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), transparent);
+    }
+    .brand {
+      display: flex; align-items: center; gap: 12px;
+      max-width: 880px; margin: 0 auto;
+    }
+    .brand .title-block { flex: 1; min-width: 0; }
+    button.header-action {
+      flex: 0 0 auto;
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--bg-1); border: 1px solid var(--border);
+      color: var(--text); font: inherit; font-size: 0.85rem;
+      padding: 7px 12px; border-radius: 999px; cursor: pointer;
+      transition: border-color 0.15s ease, transform 0.08s ease, background 0.15s ease;
+    }
+    button.header-action:hover { border-color: var(--accent); transform: translateY(-1px); }
+    button.header-action svg { width: 14px; height: 14px; }
+    .logo {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+      display: grid; place-items: center;
+      box-shadow: 0 6px 18px rgba(99, 102, 241, 0.35);
+    }
+    .logo svg { width: 20px; height: 20px; color: white; }
+    h1 { font-size: 1.05rem; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+    .subtitle { color: var(--muted); font-size: 0.82rem; margin-top: 2px; }
+
+    main {
+      flex: 1; display: flex; flex-direction: column;
+      max-width: 880px; width: 100%; margin: 0 auto;
+      padding: 24px 20px 0;
+    }
+
+    #log {
+      flex: 1;
+      display: flex; flex-direction: column; gap: 18px;
+      padding-bottom: 24px;
+    }
+
+    .turn { display: flex; gap: 12px; max-width: 100%; }
+    .turn .avatar {
+      flex: 0 0 32px; width: 32px; height: 32px; border-radius: 50%;
+      display: grid; place-items: center;
+      font-size: 0.78rem; font-weight: 600;
+      color: white;
+    }
+    .turn .body { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; }
+    .turn .who { font-size: 0.78rem; color: var(--muted); font-weight: 500; }
+    .bubble {
+      padding: 12px 16px; border-radius: var(--radius);
+      line-height: 1.55;
+      box-shadow: var(--shadow);
+      overflow-wrap: anywhere;
+    }
+
+    .turn.user { justify-content: flex-end; }
+    .turn.user .avatar { order: 2; background: var(--user-bg); }
+    .turn.user .body { align-items: flex-end; order: 1; }
+    .turn.user .bubble {
+      background: var(--user-bg);
+      color: white;
+      border-bottom-right-radius: 4px;
+      max-width: 75%;
+    }
+
+    .turn.assistant .avatar {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+    }
+    .turn.assistant .bubble {
+      background: var(--assistant-bg);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 4px;
+    }
+
+    /* Markdown styling inside assistant bubble */
+    .bubble h1, .bubble h2, .bubble h3, .bubble h4 {
+      margin: 0.4em 0 0.3em; line-height: 1.3; font-weight: 600;
+    }
+    .bubble h1 { font-size: 1.2rem; }
+    .bubble h2 { font-size: 1.1rem; }
+    .bubble h3 { font-size: 1.02rem; color: var(--accent); }
+    .bubble h4 { font-size: 0.95rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .bubble p { margin: 0.4em 0; }
+    .bubble p:first-child { margin-top: 0; }
+    .bubble p:last-child { margin-bottom: 0; }
+    .bubble ul, .bubble ol { margin: 0.3em 0 0.5em; padding-left: 1.2em; }
+    .bubble li { margin: 0.15em 0; }
+    .bubble strong { color: var(--text); font-weight: 600; }
+    .bubble code {
+      background: rgba(127, 127, 127, 0.15);
+      padding: 0.1em 0.4em; border-radius: 4px;
+      font-size: 0.9em;
+    }
+    .bubble pre {
+      background: rgba(0, 0, 0, 0.25); padding: 10px 12px; border-radius: 8px;
+      overflow-x: auto; font-size: 0.85rem;
+    }
+    .bubble blockquote {
+      border-left: 3px solid var(--accent);
+      margin: 0.4em 0; padding: 0.2em 0.8em;
+      color: var(--muted);
+    }
+    .bubble hr { border: none; border-top: 1px solid var(--border); margin: 0.8em 0; }
+    .bubble table { border-collapse: collapse; margin: 0.5em 0; font-size: 0.92em; }
+    .bubble th, .bubble td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; }
+    .bubble th { background: rgba(127, 127, 127, 0.1); font-weight: 600; }
+
+    /* Typing indicator */
+    .typing { display: inline-flex; gap: 4px; padding: 4px 2px; }
+    .typing span {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--muted); opacity: 0.6;
+      animation: blink 1.2s infinite ease-in-out;
+    }
+    .typing span:nth-child(2) { animation-delay: 0.15s; }
+    .typing span:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes blink {
+      0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+      40% { transform: translateY(-4px); opacity: 1; }
+    }
+
+    /* Empty state */
+    .empty {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 18px; padding: 40px 20px; text-align: center; color: var(--muted);
+    }
+    .empty h2 { font-size: 1.4rem; color: var(--text); margin: 0; font-weight: 600; letter-spacing: -0.01em; }
+    .empty p { max-width: 480px; margin: 0; line-height: 1.55; }
+    .suggestions {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px; width: 100%; max-width: 720px; margin-top: 6px;
+    }
+    .suggestion {
+      text-align: left;
+      background: var(--bg-1); border: 1px solid var(--border);
+      border-radius: 12px; padding: 12px 14px;
+      color: var(--text); font: inherit; font-size: 0.9rem; cursor: pointer;
+      transition: transform 0.08s ease, border-color 0.15s ease;
+    }
+    .suggestion:hover { border-color: var(--accent); transform: translateY(-1px); }
+    .suggestion strong { display: block; margin-bottom: 2px; font-size: 0.85rem; color: var(--accent); }
+
+    /* Composer */
+    .composer {
+      position: sticky; bottom: 0;
+      padding: 14px 0 22px;
+      background: linear-gradient(180deg, transparent 0%, var(--bg-0) 30%);
+    }
+    form {
+      display: flex; gap: 10px; align-items: flex-end;
+      background: var(--bg-1); border: 1px solid var(--border);
+      border-radius: 16px; padding: 8px 8px 8px 14px;
+      box-shadow: var(--shadow);
+      transition: border-color 0.15s ease;
+    }
+    form:focus-within { border-color: var(--accent); }
+    textarea {
+      flex: 1;
+      background: transparent; border: none; outline: none;
+      color: var(--text); font: inherit; font-size: 0.95rem;
+      resize: none; max-height: 160px; line-height: 1.5;
+      padding: 8px 4px;
+    }
+    button.send {
+      flex: 0 0 auto;
+      width: 38px; height: 38px; border-radius: 10px;
+      border: none; cursor: pointer;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+      color: white; display: grid; place-items: center;
+      transition: transform 0.08s ease, opacity 0.15s ease;
+    }
+    button.send:hover { transform: translateY(-1px); }
+    button.send:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    button.send svg { width: 18px; height: 18px; }
+    .hint { font-size: 0.72rem; color: var(--muted); margin: 6px 4px 0; text-align: center; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+          <circle cx="12" cy="10" r="3"/>
+        </svg>
+      </div>
+      <div class="title-block">
+        <h1>Multi-agent travel planner</h1>
+        <div class="subtitle">Powered by Microsoft Agent Framework on Azure App Service</div>
+      </div>
+      <button class="header-action" id="newChat" title="Start a new conversation" aria-label="New conversation">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 5v14"/><path d="M5 12h14"/>
+        </svg>
+        New chat
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <div id="log" aria-live="polite">
+      <div class="empty" id="empty">
+        <h2>Ask the coordinator to plan a trip</h2>
+        <p>It delegates to five specialists — weather, currency, budget, local knowledge, and itinerary — and aggregates the result. Each agent shows up separately in <strong>App Service → AI (preview) → Agents</strong>.</p>
+        <div class="suggestions">
+          <button class="suggestion" data-prompt="Plan a 4-day trip to Lisbon in July for two on a midrange budget. Include weather and currency notes.">
+            <strong>Lisbon, 4 days</strong>July, midrange, weather and currency
+          </button>
+          <button class="suggestion" data-prompt="Plan a 3-day Tokyo trip in April on a luxury budget. Show costs in JPY and USD.">
+            <strong>Tokyo, 3 days</strong>Luxury, April, cherry blossoms
+          </button>
+          <button class="suggestion" data-prompt="Compare 4 days in Barcelona vs 4 days in Rome for a midrange traveler in October.">
+            <strong>Barcelona vs. Rome</strong>4 days each, October, midrange
+          </button>
+          <button class="suggestion" data-prompt="I'm going to Mexico City for 5 days in August. Weather, money, culture, and an itinerary.">
+            <strong>Mexico City, 5 days</strong>August, full plan
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="composer">
+      <form id="chat">
+        <textarea id="msg" rows="1" placeholder="Plan a 4-day trip to Lisbon in July for two on a midrange budget…" required></textarea>
+        <button class="send" type="submit" id="send" aria-label="Send">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 2L11 13"/>
+            <path d="M22 2l-7 20-4-9-9-4 20-7z"/>
+          </svg>
+        </button>
+      </form>
+      <div class="hint">Press <kbd>Enter</kbd> to send · <kbd>Shift+Enter</kbd> for a new line</div>
+    </div>
+  </main>
+
+  <script>
+    marked.setOptions({ breaks: true, gfm: true });
+
+    const log     = document.getElementById('log');
+    const empty   = document.getElementById('empty');
+    const form    = document.getElementById('chat');
+    const msg     = document.getElementById('msg');
+    const send    = document.getElementById('send');
+    let sessionId = null;
+
+    // Autosize textarea
+    msg.addEventListener('input', () => {
+      msg.style.height = 'auto';
+      msg.style.height = Math.min(msg.scrollHeight, 160) + 'px';
+    });
+
+    // Enter to send, Shift+Enter for newline
+    msg.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        form.requestSubmit();
+      }
+    });
+
+    // New conversation: reset client session, clear chat, restore empty state
+    const EMPTY_HTML = `
+      <div class="empty" id="empty">
+        <h2>Ask the coordinator to plan a trip</h2>
+        <p>It delegates to five specialists — weather, currency, budget, local knowledge, and itinerary — and aggregates the result. Each agent shows up separately in <strong>App Service → AI (preview) → Agents</strong>.</p>
+        <div class="suggestions">
+          <button class="suggestion" data-prompt="Plan a 4-day trip to Lisbon in July for two on a midrange budget. Include weather and currency notes.">
+            <strong>Lisbon, 4 days</strong>July, midrange, weather and currency
+          </button>
+          <button class="suggestion" data-prompt="Plan a 3-day Tokyo trip in April on a luxury budget. Show costs in JPY and USD.">
+            <strong>Tokyo, 3 days</strong>Luxury, April, cherry blossoms
+          </button>
+          <button class="suggestion" data-prompt="Compare 4 days in Barcelona vs 4 days in Rome for a midrange traveler in October.">
+            <strong>Barcelona vs. Rome</strong>4 days each, October, midrange
+          </button>
+          <button class="suggestion" data-prompt="I'm going to Mexico City for 5 days in August. Weather, money, culture, and an itinerary.">
+            <strong>Mexico City, 5 days</strong>August, full plan
+          </button>
+        </div>
+      </div>`;
+
+    function wireSuggestions() {
+      document.querySelectorAll('.suggestion').forEach(btn => {
+        btn.addEventListener('click', () => {
+          msg.value = btn.dataset.prompt;
+          msg.dispatchEvent(new Event('input'));
+          form.requestSubmit();
+        });
+      });
+    }
+    wireSuggestions();
+
+    document.getElementById('newChat').addEventListener('click', () => {
+      sessionId = null;
+      log.innerHTML = EMPTY_HTML;
+      wireSuggestions();
+      msg.value = '';
+      msg.style.height = 'auto';
+      msg.focus();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    function renderTurn(role, content, { markdown = false, isTyping = false } = {}) {
+      const turn = document.createElement('div');
+      turn.className = 'turn ' + role;
+
+      const avatar = document.createElement('div');
+      avatar.className = 'avatar';
+      avatar.textContent = role === 'user' ? 'You' : 'C';
+      avatar.title = role === 'user' ? 'You' : 'Coordinator';
+
+      const body = document.createElement('div');
+      body.className = 'body';
+      const who = document.createElement('div');
+      who.className = 'who';
+      who.textContent = role === 'user' ? 'You' : 'Coordinator';
+      body.appendChild(who);
+
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      if (isTyping) {
+        bubble.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
+      } else if (markdown) {
+        bubble.innerHTML = marked.parse(content);
+      } else {
+        bubble.textContent = content;
+      }
+      body.appendChild(bubble);
+
+      turn.appendChild(avatar);
+      turn.appendChild(body);
+      log.appendChild(turn);
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+      return { turn, bubble };
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const text = msg.value.trim();
+      if (!text) return;
+
+      if (empty) empty.remove();
+
+      renderTurn('user', text);
+      msg.value = '';
+      msg.style.height = 'auto';
+      send.disabled = true;
+
+      const typing = renderTurn('assistant', '', { isTyping: true });
+
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ message: text, sessionId })
+        });
+        if (!res.ok) {
+          typing.bubble.innerHTML = `<strong>Error</strong> — request failed (${res.status})`;
+          return;
+        }
+        const data = await res.json();
+        sessionId = data.sessionId;
+        typing.bubble.innerHTML = marked.parse(data.reply || '');
+      } catch (err) {
+        typing.bubble.innerHTML = `<strong>Error</strong> — ${String(err)}`;
+      } finally {
+        send.disabled = false;
+        msg.focus();
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+      }
+    });
+
+    msg.focus();
+  </script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+name: multi-agent-travel-planner-dotnet
+metadata:
+  template: multi-agent-travel-planner-dotnet@0.1.0
+services:
+  web:
+    project: ./src/MultiAgentTravelPlanner
+    language: dotnet
+    host: appservice
